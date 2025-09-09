@@ -51,6 +51,9 @@ ThisBuild / developers := List(
 lazy val root = (project in file("."))
   .settings(
     name := "spark-connector",
+    assembly / parallelExecution := true,
+    Test / parallelExecution := true,
+    Compile / compile / parallelExecution := true,
     version := "0.1.14-SNAPSHOT",
     organization := "com.zilliz",
     libraryDependencies ++= Seq(
@@ -68,6 +71,8 @@ lazy val root = (project in file("."))
       hadoopCommon,
       hadoopAws,
       awsSdkS3,
+      awsSdkS3Transfer,
+      awsSdkCore,
       jacksonScala,
       jacksonDatabind
     ),
@@ -84,7 +89,13 @@ lazy val root = (project in file("."))
         file -> s"generated_protobuf/${file.relativeTo(base).getOrElse(file)}"
       }
     },
-    Compile / resourceDirectories += baseDirectory.value / "src" / "main" / "resources"
+    Compile / resourceDirectories += baseDirectory.value / "src" / "main" / "resources",
+    // 发布 assembly JAR 作为单独的 artifact，带 classifier
+    assembly / artifact := {
+      val art = (assembly / artifact).value
+      art.withClassifier(Some("assembly"))
+    },
+    addArtifact(assembly / artifact, assembly)
   )
 
 assembly / assemblyShadeRules := Seq(
@@ -109,6 +120,9 @@ assembly / assemblyMergeStrategy := {
   // Handle module-info.class files
   case x if x.endsWith("module-info.class") =>
     MergeStrategy.discard
+  // Handle hadoop package-info conflicts
+  case PathList("org", "apache", "hadoop", xs @ _*) if xs.last == "package-info.class" =>
+    MergeStrategy.first
   // Default case
   case x =>
     val oldStrategy = (ThisBuild / assemblyMergeStrategy).value
