@@ -67,6 +67,7 @@ RUN --mount=type=cache,target=/root/.conan \
     --mount=type=cache,target=/root/.ccache \
     conan profile new default --detect 2>/dev/null || true && \
     conan profile update settings.compiler.libcxx=libstdc++11 default && \
+    conan profile update options.jemalloc:enable_cxx=False default && \
     conan remote add default-conan-local https://milvus01.jfrog.io/artifactory/api/conan/default-conan-local --insert 2>/dev/null || true && \
     cd milvus-storage/cpp && make build USE_JNI=True WITH_UT=False USE_ASAN=False
 
